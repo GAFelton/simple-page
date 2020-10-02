@@ -29,11 +29,14 @@ const UIController = (function() {
     clearInput: function() {
       return (document.querySelector(DOMString.addInput).value = "");
     },
-    addTaskList: function(tasks) {
+    addTaskList: function(tasks, checked = false) {
       const element = DOMString.taskListContainer;
 
-      const html =
-        "<li class='list__task' id='task-%id%'><button class='list__task--check' id='check'><i class='ion-ios-checkmark'></i></button><div class='list__task--text'>%description%</div><button class='list__task--del' id='del'><i class='ion-android-delete'></i></button></li>";
+      const html = `<li class='list__task' id='task-%id%'><button class='list__task--${
+        checked ? "checked" : "check"
+      }' id='check'><i class='ion-ios-checkmark'></i></button><div class='list__task--text${
+        checked ? "--checked" : ""
+      }'>%description%</div><button class='list__task--del' id='del'><i class='ion-android-delete'></i></button></li>`;
 
       markup = html.replace("%id%", tasks.id);
       markup = markup.replace("%description%", tasks.description);
@@ -52,6 +55,7 @@ const UIController = (function() {
         if (taskID === listID) {
           el[i].childNodes[0].classList.toggle("list__task--checked");
           el[i].childNodes[1].classList.toggle("list__task--text--checked");
+          console.log("TASK", id, "CHECKED");
         }
       }
     },
@@ -59,6 +63,9 @@ const UIController = (function() {
     deleteTaskList: function(id) {
       const el = document.getElementById("task-" + id);
       el.parentNode.removeChild(el);
+
+      console.log("TASK", id, "REMOVED")
+
     },
 
     displayMonth: function() {
@@ -105,6 +112,13 @@ const TodolistController = (function() {
     createNewTask: function(desc) {
       let addItem, ID;
 
+      const dbItem = await new Promise(
+        resolve => setTimeout(
+          () => resolve([
+            {title: "Task 1", checked: true},
+            {title: "Task 2", checked: false}
+          ]), 500))
+
       if (data.length > 0) {
         for (i = 0; i < data.length; i++) {
           ID = i + 1;
@@ -117,6 +131,7 @@ const TodolistController = (function() {
 
       data.push(addItem);
 
+      console.log("NEW TASK", addItem)
       return addItem;
     },
 
@@ -178,10 +193,25 @@ const MainController = (function(TodoCtrl, UICtrl) {
   };
 
   return {
-    init: function() {
+    init: async function() {
       console.log("script.js : connecting..");
       setupEventListener();
       UICtrl.displayMonth();
+
+      // TODO - Retrieve items from API
+      const items = await new Promise(
+        resolve => setTimeout(
+          () => resolve([
+            {title: "Task 1", checked: true},
+            {title: "Task 2", checked: false}
+          ]), 500))
+
+      for (const item of items) {
+        const task = TodoCtrl.createNewTask(item.title);
+  
+        UICtrl.addTaskList(task, item.checked);
+        
+      }
     }
   };
 })(TodolistController, UIController);
