@@ -55,6 +55,10 @@ $(document).ready(() => {
   });
 
   function loginUser(email, password) {
+    function handleLoginErr(err) {
+      $("#alert .msg").text(err.responseText);
+      $("#alert").fadeIn(500);
+    }
     $.post("/api/login", {
       email: email,
       password: password
@@ -63,9 +67,7 @@ $(document).ready(() => {
         window.location.replace("/main");
         // If there's an error, log the error
       })
-      .catch(err => {
-        console.log(err);
-      });
+      .catch(handleLoginErr);
   }
 
   signupForm.on("submit", event => {
