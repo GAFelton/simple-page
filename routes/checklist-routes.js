@@ -1,9 +1,9 @@
 const db = require("../models");
 
 module.exports = function(app) {
-  //GET ALL checklist items for a user
+  //GET ALL non-hidden checklist items for a user
   app.get("/api/list", (req, res) => {
-    db.Checklist.findAll({ where: { user_id: req.user.id } })
+    db.Checklist.findAll({ where: { user_id: req.user.id, hidden: 0 } })
       .then(data => {
         //Currently returns list, may switch to res.render for HBS
         res.status(200).json(data);
