@@ -85,6 +85,16 @@ const UIController = (function() {
         const listID = el[i].id;
 
         if (taskID === listID) {
+          if (!(el[i].childNodes[0].classList.contains("list__task--checked"))) {
+            putFetchAsync(`/api/list/done/${id}`, {
+              completed: 1
+            });
+          }
+          if (el[i].childNodes[0].classList.contains("list__task--checked")) {
+            putFetchAsync(`/api/list/done/${id}`, {
+              completed: 0
+            });
+          }
           el[i].childNodes[0].classList.toggle("list__task--checked");
           el[i].childNodes[1].classList.toggle("list__task--text--checked");
           console.log("TASK", id, "CHECKED");
@@ -132,8 +142,8 @@ const UIController = (function() {
 const TodolistController = (function() {
   const data = [];
 
-  const Task = function(id, description) {
-    (this.id = id), (this.description = description);
+  const Task = function(id, value) {
+    (this.id = id), (this.value = value);
   };
 
   return {
@@ -147,27 +157,23 @@ const TodolistController = (function() {
 
     createNewTask: async function(value) {
       const newTask = { value: value };
-      await postFetchAsync("/api/list", newTask)
-        .then(res => {
-          console.log("Data:" + res);
-          const results = JSON.parse(res);
-          const ID = results.id;
-          const addItem = new Task(ID, value);
+      const res = await postFetchAsync("/api/list", newTask);
+      const results = JSON.parse(res);
+      const ID = results.id;
+      const addItem = new Task(ID, value);
 
-          data.push(addItem);
+      data.push(addItem);
 
-          console.log("NEW TASK", addItem);
-          return addItem;
-        })
-        .catch(error => {
-          console.error("Error:", error);
-        });
+      console.log("NEW TASK", addItem);
+      return addItem;
     },
 
     deleteTask: function(id) {
       const ids = data.map(current => {
         return current.id;
       });
+
+      putFetchAsync(`/api/list/hide/${id}`);
 
       const index = ids.indexOf(parseInt(id));
       if (index !== -1) {
@@ -198,32 +204,9 @@ const MainController = (function(TodoCtrl, UICtrl) {
     const item = UICtrl.getInput();
 
     if (item !== "" && item !== " ") {
-      const tasks = await Promise.resolve(TodoCtrl.createNewTask(item));
-
-      console.log("tasks:", tasks);
+      const tasks = await TodoCtrl.createNewTask(item);
       UICtrl.addTaskList(tasks);
       UICtrl.clearInput();
-     
-      // let tasks;
-      // setTimeout(() => {
-      //   tasks = TodoCtrl.createNewTask(item);
-      // }, 500);
-      // console.log("tasks:" + tasks);
-      // UICtrl.addTaskList(tasks);
-      // UICtrl.clearInput();
-
-      // -------------
-
-      // const newItem = TodoCtrl.createNewTask.bind(TodoCtrl.createNewTask, item);
-      // newItem()
-      //   .then(result => {
-      //     console.log("tasks:", result);
-      //     UICtrl.addTaskList(result);
-      //     UICtrl.clearInput();
-      //   })
-      //   .catch(error => {
-      //     console.log("Error: " + error);
-      //   });
     }
   };
 
