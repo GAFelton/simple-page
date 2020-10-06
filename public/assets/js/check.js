@@ -1,29 +1,29 @@
 //Vanilla JavaScript Fetch API Function
 async function fetchAsync(url) {
-  let response = await fetch(url);
-  let data = await response.json();
+  const response = await fetch(url);
+  const data = await response.json();
   return data;
 }
 async function postFetchAsync(url, req = {}) {
-  let response = await fetch(url, {
+  const response = await fetch(url, {
     method: "POST", // or 'PUT'
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(req)
   });
-  let data = await response.text();
+  const data = await response.json();
   return data;
 }
 async function putFetchAsync(url, req = {}) {
-  let response = await fetch(url, {
+  const response = await fetch(url, {
     method: "PUT", // or 'POST'
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(req)
   });
-  let data = await response.json();
+  const data = await response.json();
   return data;
 }
 
@@ -85,7 +85,7 @@ const UIController = (function() {
         const listID = el[i].id;
 
         if (taskID === listID) {
-          if (!(el[i].childNodes[0].classList.contains("list__task--checked"))) {
+          if (!el[i].childNodes[0].classList.contains("list__task--checked")) {
             putFetchAsync(`/api/list/done/${id}`, {
               completed: 1
             });
@@ -106,8 +106,7 @@ const UIController = (function() {
       const el = document.getElementById("task-" + id);
       el.parentNode.removeChild(el);
 
-      console.log("TASK", id, "REMOVED")
-
+      console.log("TASK", id, "REMOVED");
     },
 
     displayMonth: function() {
@@ -158,14 +157,23 @@ const TodolistController = (function() {
     createNewTask: async function(value) {
       const newTask = { value: value };
       const res = await postFetchAsync("/api/list", newTask);
-      const results = JSON.parse(res);
-      const ID = results.id;
+      const ID = res.id;
       const addItem = new Task(ID, value);
 
       data.push(addItem);
 
       console.log("NEW TASK", addItem);
       return addItem;
+    },
+
+    getDBTasks: async function() {
+      const allTasks = await fetchAsync("/api/list");
+      console.log("Tasks added to list: \n", allTasks);
+      for (const item of allTasks) {
+        const task = new Task(item.id, item.body);
+        TodolistController.pushData(task);
+        UIController.addTaskList(task, item.completed);
+      }
     },
 
     deleteTask: function(id) {
@@ -228,24 +236,10 @@ const MainController = (function(TodoCtrl, UICtrl) {
 
   return {
     init: async function() {
-      console.log("script.js : connecting..");
+      console.log("check.js : connecting..");
       setupEventListener();
       UICtrl.displayMonth();
-
-      // TODO - Retrieve items from API - ONLY GET ITEMS THAT ARE NOT HIDDEN
-      const items = await new Promise(
-        resolve => setTimeout(
-          () => resolve([
-            { id: 1, value: "Task 1", checked: true },
-            { id: 2, value: "Task 2", checked: false }
-          ]), 500))
-
-      for (const item of items) {
-        const task = { id: item.id, value: item.value };
-        TodoCtrl.pushData(task);
-        console.log(task);
-        UICtrl.addTaskList(task, item.checked);
-      }
+      TodoCtrl.getDBTasks();
     }
   };
 })(TodolistController, UIController);
