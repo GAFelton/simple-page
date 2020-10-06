@@ -56,6 +56,7 @@ $(document).ready(() => {
 
   function loginUser(email, password) {
     function handleLoginErr(err) {
+      console.log(err);
       $("#alert .msg").text(err.responseText);
       $("#alert").fadeIn(500);
     }
@@ -108,14 +109,14 @@ $(document).ready(() => {
         .then(() => {
           window.location.replace("/");
         })
-        .catch(handleLoginErr);
+        .catch(handleSignupErr);
     }
 
-    function handleLoginErr(err) {
-      $("#alert .msg").text(err.responseJSON);
-      $("#alert").fadeIn(500);
+    function handleSignupErr(err) {
+      console.log(err);
+      $("#signup-alert .msg").text(err.responseJSON.errors[0].message);
+      $("#signup-alert").fadeIn(500);
     }
   });
-
   displayLogoutModal();
 });
