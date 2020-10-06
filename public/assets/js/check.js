@@ -194,10 +194,16 @@ const MainController = (function(TodoCtrl, UICtrl) {
       .addEventListener("click", ctrlEventCheck);
   };
 
-  const ctrlAdd = function() {
+  const ctrlAdd = async function() {
     const item = UICtrl.getInput();
 
     if (item !== "" && item !== " ") {
+      const tasks = await Promise.resolve(TodoCtrl.createNewTask(item));
+
+      console.log("tasks:", tasks);
+      UICtrl.addTaskList(tasks);
+      UICtrl.clearInput();
+     
       // let tasks;
       // setTimeout(() => {
       //   tasks = TodoCtrl.createNewTask(item);
@@ -205,16 +211,19 @@ const MainController = (function(TodoCtrl, UICtrl) {
       // console.log("tasks:" + tasks);
       // UICtrl.addTaskList(tasks);
       // UICtrl.clearInput();
-      const newItem = TodoCtrl.createNewTask.bind(TodoCtrl.createNewTask, item);
-      newItem()
-        .then(result => {
-          console.log("tasks:", result);
-          UICtrl.addTaskList(result);
-          UICtrl.clearInput();
-        })
-        .catch(error => {
-          console.log("Error: " + error);
-        });
+
+      // -------------
+
+      // const newItem = TodoCtrl.createNewTask.bind(TodoCtrl.createNewTask, item);
+      // newItem()
+      //   .then(result => {
+      //     console.log("tasks:", result);
+      //     UICtrl.addTaskList(result);
+      //     UICtrl.clearInput();
+      //   })
+      //   .catch(error => {
+      //     console.log("Error: " + error);
+      //   });
     }
   };
 
