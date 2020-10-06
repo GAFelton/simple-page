@@ -52,11 +52,11 @@ module.exports = function(app) {
   });
 
   //UPDATE checklist item as complete
-  app.put("/api/list/:id", (req, res) => {
+  app.put("/api/list/done/:id", (req, res) => {
     const id = req.params.id;
     db.Checklist.update(
       {
-        completed: 1
+        completed: req.body.completed
       },
       {
         where: {
@@ -73,7 +73,7 @@ module.exports = function(app) {
   });
 
   //UPDATE checklist item as hidden
-  app.put("/api/list/:id", (req, res) => {
+  app.put("/api/list/hide/:id", (req, res) => {
     const id = req.params.id;
     db.Checklist.update(
       {
