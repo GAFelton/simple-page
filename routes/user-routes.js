@@ -8,19 +8,23 @@ module.exports = function(app) {
   // Otherwise the user will be sent an error
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
     // Sending back a password, even a hashed password, isn't a good idea
-    res.json({
-      first_name: req.user.first_name,
-      last_name: req.user.last_name,
-      email: req.user.email,
-      id: req.user.id
-    });
+    res
+      .json({
+        first_name: req.user.first_name,
+        last_name: req.user.last_name,
+        email: req.user.email,
+        id: req.user.id
+      })
+      .catch(err => {
+        res.status(401).json(err);
+      });
   });
 
   // Route for signing up a user. The user's password is automatically hashed and stored securely thanks to
   // how we configured our Sequelize User Model. If the user is created successfully, proceed to log the user in,
   // otherwise send back an error
   app.post("/api/signup", (req, res) => {
-    console.log("Checking route\n" + req.body);
+    console.log("Signing up new user");
     db.User.create({
       first_name: req.body.first_name,
       last_name: req.body.last_name,

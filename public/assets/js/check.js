@@ -1,3 +1,32 @@
+//Vanilla JavaScript Fetch API Function
+async function fetchAsync(url) {
+  const response = await fetch(url);
+  const data = await response.json();
+  return data;
+}
+async function postFetchAsync(url, req = {}) {
+  const response = await fetch(url, {
+    method: "POST", // or 'PUT'
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(req)
+  });
+  const data = await response.json();
+  return data;
+}
+async function putFetchAsync(url, req = {}) {
+  const response = await fetch(url, {
+    method: "PUT", // or 'POST'
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(req)
+  });
+  const data = await response.json();
+  return data;
+}
+
 const UIController = (function() {
   const DOMString = {
     day: ".date--day",
@@ -29,16 +58,22 @@ const UIController = (function() {
     clearInput: function() {
       return (document.querySelector(DOMString.addInput).value = "");
     },
-    addTaskList: function(tasks) {
+    addTaskList: function(tasks, checked = false) {
       const element = DOMString.taskListContainer;
 
       const html =
         "<li class='list__task' id='task-%id%'><button class='list__task--check' id='check'><i class='ion-ios-checkmark'></i></button><div class='list__task--text'>%description%</div><button class='list__task--del' id='del'><i class='ion-android-delete'></i></button></li>";
 
       markup = html.replace("%id%", tasks.id);
-      markup = markup.replace("%description%", tasks.description);
+      markup = markup.replace("%description%", tasks.value);
 
       document.querySelector(element).insertAdjacentHTML("afterbegin", markup);
+      const el = document.querySelector(`#task-${tasks.id}`);
+
+      if (checked === true) {
+        el.childNodes[0].classList.toggle("list__task--checked");
+        el.childNodes[1].classList.toggle("list__task--text--checked");
+      }
     },
 
     checkedTaskList: function(id) {
@@ -50,8 +85,19 @@ const UIController = (function() {
         const listID = el[i].id;
 
         if (taskID === listID) {
+          if (!el[i].childNodes[0].classList.contains("list__task--checked")) {
+            putFetchAsync(`/api/list/done/${id}`, {
+              completed: 1
+            });
+          }
+          if (el[i].childNodes[0].classList.contains("list__task--checked")) {
+            putFetchAsync(`/api/list/done/${id}`, {
+              completed: 0
+            });
+          }
           el[i].childNodes[0].classList.toggle("list__task--checked");
           el[i].childNodes[1].classList.toggle("list__task--text--checked");
+          console.log("TASK", id, "CHECKED");
         }
       }
     },
@@ -59,6 +105,8 @@ const UIController = (function() {
     deleteTaskList: function(id) {
       const el = document.getElementById("task-" + id);
       el.parentNode.removeChild(el);
+
+      console.log("TASK", id, "REMOVED");
     },
 
     displayMonth: function() {
@@ -93,8 +141,8 @@ const UIController = (function() {
 const TodolistController = (function() {
   const data = [];
 
-  const Task = function(id, description) {
-    (this.id = id), (this.description = description);
+  const Task = function(id, value) {
+    (this.id = id), (this.value = value);
   };
 
   return {
@@ -102,28 +150,38 @@ const TodolistController = (function() {
       console.log("Call from Model");
     },
 
-    createNewTask: function(desc) {
-      let addItem, ID;
+    pushData: function(task) {
+      data.push(task);
+    },
 
-      if (data.length > 0) {
-        for (i = 0; i < data.length; i++) {
-          ID = i + 1;
-          addItem = new Task(ID, desc);
-        }
-      } else {
-        ID = 0;
-        addItem = new Task(ID, desc);
-      }
+    createNewTask: async function(value) {
+      const newTask = { value: value };
+      const res = await postFetchAsync("/api/list", newTask);
+      const ID = res.id;
+      const addItem = new Task(ID, value);
 
       data.push(addItem);
 
+      console.log("NEW TASK", addItem);
       return addItem;
+    },
+
+    getDBTasks: async function() {
+      const allTasks = await fetchAsync("/api/list");
+      console.log("Tasks added to list: \n", allTasks);
+      for (const item of allTasks) {
+        const task = new Task(item.id, item.body);
+        TodolistController.pushData(task);
+        UIController.addTaskList(task, item.completed);
+      }
     },
 
     deleteTask: function(id) {
       const ids = data.map(current => {
         return current.id;
       });
+
+      putFetchAsync(`/api/list/hide/${id}`);
 
       const index = ids.indexOf(parseInt(id));
       if (index !== -1) {
@@ -150,12 +208,11 @@ const MainController = (function(TodoCtrl, UICtrl) {
       .addEventListener("click", ctrlEventCheck);
   };
 
-  const ctrlAdd = function() {
+  const ctrlAdd = async function() {
     const item = UICtrl.getInput();
 
     if (item !== "" && item !== " ") {
-      const tasks = TodoCtrl.createNewTask(item);
-
+      const tasks = await TodoCtrl.createNewTask(item);
       UICtrl.addTaskList(tasks);
       UICtrl.clearInput();
     }
@@ -178,10 +235,11 @@ const MainController = (function(TodoCtrl, UICtrl) {
   };
 
   return {
-    init: function() {
-      console.log("script.js : connecting..");
+    init: async function() {
+      console.log("check.js : connecting..");
       setupEventListener();
       UICtrl.displayMonth();
+      TodoCtrl.getDBTasks();
     }
   };
 })(TodolistController, UIController);

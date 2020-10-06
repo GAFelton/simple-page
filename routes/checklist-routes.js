@@ -1,9 +1,9 @@
 const db = require("../models");
 
 module.exports = function(app) {
-  //GET ALL checklist items for a user
+  //GET ALL non-hidden checklist items for a user
   app.get("/api/list", (req, res) => {
-    db.Checklist.findAll({ where: { user_id: req.user.id } })
+    db.Checklist.findAll({ where: { user_id: req.user.id, hidden: 0 } })
       .then(data => {
         //Currently returns list, may switch to res.render for HBS
         res.status(200).json(data);
@@ -52,11 +52,11 @@ module.exports = function(app) {
   });
 
   //UPDATE checklist item as complete
-  app.put("/api/list/:id", (req, res) => {
+  app.put("/api/list/done/:id", (req, res) => {
     const id = req.params.id;
     db.Checklist.update(
       {
-        completed: 1
+        completed: req.body.completed
       },
       {
         where: {
@@ -73,7 +73,7 @@ module.exports = function(app) {
   });
 
   //UPDATE checklist item as hidden
-  app.put("/api/list/:id", (req, res) => {
+  app.put("/api/list/hide/:id", (req, res) => {
     const id = req.params.id;
     db.Checklist.update(
       {
