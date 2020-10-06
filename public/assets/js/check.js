@@ -1,3 +1,32 @@
+//Vanilla JavaScript Fetch API Function
+async function fetchAsync(url) {
+  let response = await fetch(url);
+  let data = await response.json();
+  return data;
+}
+async function postFetchAsync(url, req = {}) {
+  let response = await fetch(url, {
+    method: "POST", // or 'PUT'
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(req)
+  });
+  let data = await response.text();
+  return data;
+}
+async function putFetchAsync(url, req = {}) {
+  let response = await fetch(url, {
+    method: "PUT", // or 'POST'
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(req)
+  });
+  let data = await response.json();
+  return data;
+}
+
 const UIController = (function() {
   const DOMString = {
     day: ".date--day",
@@ -32,16 +61,19 @@ const UIController = (function() {
     addTaskList: function(tasks, checked = false) {
       const element = DOMString.taskListContainer;
 
-      const html = `<li class='list__task' id='task-%id%'><button class='list__task--${
-        checked ? "checked" : "check"
-      }' id='check'><i class='ion-ios-checkmark'></i></button><div class='list__task--text${
-        checked ? "--checked" : ""
-      }'>%description%</div><button class='list__task--del' id='del'><i class='ion-android-delete'></i></button></li>`;
+      const html =
+        "<li class='list__task' id='task-%id%'><button class='list__task--check' id='check'><i class='ion-ios-checkmark'></i></button><div class='list__task--text'>%description%</div><button class='list__task--del' id='del'><i class='ion-android-delete'></i></button></li>";
 
       markup = html.replace("%id%", tasks.id);
-      markup = markup.replace("%description%", tasks.description);
+      markup = markup.replace("%description%", tasks.value);
 
       document.querySelector(element).insertAdjacentHTML("afterbegin", markup);
+      const el = document.querySelector(`#task-${tasks.id}`);
+
+      if (checked === true) {
+        el.childNodes[0].classList.toggle("list__task--checked");
+        el.childNodes[1].classList.toggle("list__task--text--checked");
+      }
     },
 
     checkedTaskList: function(id) {
@@ -109,30 +141,27 @@ const TodolistController = (function() {
       console.log("Call from Model");
     },
 
-    createNewTask: function(desc) {
-      let addItem, ID;
+    pushData: function(task) {
+      data.push(task);
+    },
 
-      const dbItem = await new Promise(
-        resolve => setTimeout(
-          () => resolve([
-            {title: "Task 1", checked: true},
-            {title: "Task 2", checked: false}
-          ]), 500))
+    createNewTask: async function(value) {
+      const newTask = { value: value };
+      await postFetchAsync("/api/list", newTask)
+        .then(res => {
+          console.log("Data:" + res);
+          const results = JSON.parse(res);
+          const ID = results.id;
+          const addItem = new Task(ID, value);
 
-      if (data.length > 0) {
-        for (i = 0; i < data.length; i++) {
-          ID = i + 1;
-          addItem = new Task(ID, desc);
-        }
-      } else {
-        ID = 0;
-        addItem = new Task(ID, desc);
-      }
+          data.push(addItem);
 
-      data.push(addItem);
-
-      console.log("NEW TASK", addItem)
-      return addItem;
+          console.log("NEW TASK", addItem);
+          return addItem;
+        })
+        .catch(error => {
+          console.error("Error:", error);
+        });
     },
 
     deleteTask: function(id) {
@@ -169,10 +198,23 @@ const MainController = (function(TodoCtrl, UICtrl) {
     const item = UICtrl.getInput();
 
     if (item !== "" && item !== " ") {
-      const tasks = TodoCtrl.createNewTask(item);
-
-      UICtrl.addTaskList(tasks);
-      UICtrl.clearInput();
+      // let tasks;
+      // setTimeout(() => {
+      //   tasks = TodoCtrl.createNewTask(item);
+      // }, 500);
+      // console.log("tasks:" + tasks);
+      // UICtrl.addTaskList(tasks);
+      // UICtrl.clearInput();
+      const newItem = TodoCtrl.createNewTask.bind(TodoCtrl.createNewTask, item);
+      newItem()
+        .then(result => {
+          console.log("tasks:", result);
+          UICtrl.addTaskList(result);
+          UICtrl.clearInput();
+        })
+        .catch(error => {
+          console.log("Error: " + error);
+        });
     }
   };
 
@@ -198,19 +240,19 @@ const MainController = (function(TodoCtrl, UICtrl) {
       setupEventListener();
       UICtrl.displayMonth();
 
-      // TODO - Retrieve items from API
+      // TODO - Retrieve items from API - ONLY GET ITEMS THAT ARE NOT HIDDEN
       const items = await new Promise(
         resolve => setTimeout(
           () => resolve([
-            {title: "Task 1", checked: true},
-            {title: "Task 2", checked: false}
+            { id: 1, value: "Task 1", checked: true },
+            { id: 2, value: "Task 2", checked: false }
           ]), 500))
 
       for (const item of items) {
-        const task = TodoCtrl.createNewTask(item.title);
-  
+        const task = { id: item.id, value: item.value };
+        TodoCtrl.pushData(task);
+        console.log(task);
         UICtrl.addTaskList(task, item.checked);
-        
       }
     }
   };
